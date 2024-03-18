@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     # export log messages to console and file
-    setup_logger(log_file="example1.log", log_dir="./output", log_level=logging.DEBUG)
+    setup_logger(log_dir="./output", log_file="example1.log", log_level=logging.DEBUG)
 
     # print test
     print("This is a print message from main.py.")
