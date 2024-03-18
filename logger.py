@@ -93,7 +93,7 @@ def setup_logger(log_file=None, log_dir="./output", log_level=logging.INFO):
     """Setup the logger.
     Args:
         log_file (str, optional): log file name. If None, logs only to console.
-        log_dir (str): directory to save logging file.
+        log_dir (str, optional): directory to save logging file.
         log_level (int): logging level, e.g. logging.INFO or logging.DEBUG.
     """
         
