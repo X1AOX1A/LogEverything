@@ -61,22 +61,21 @@ You can also use the logger in custom functions within your project. Here is how
 
    ```python
    import logging
-   logger = logging.getLogger(__name__)
 
-   def func_with_logger():
-       logger.info("This is an info message from func_with_logging()")
-       logger.debug("This is a debug message from func_with_logging()")
+   def func_with_logging():
+       logging.info("This is an info message from func_with_logging()")
+       logging.debug("This is a debug message from func_with_logging()")
    ```
 
 3. Call your functions from the main script where the logger has been set up.
 
    ```python
-   from func1 import func_with_logger
+   from func1 import func_with_logging
 
    if __name__ == "__main__":
        # Logger setup must be done before calling functions
        setup_logger(log_file="logger.log", log_dir="./output", log_level=logging.DEBUG)
 
        # Function call
-       func_with_logger()
+       func_with_logging()
    ```
