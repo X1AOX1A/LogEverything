@@ -6,19 +6,51 @@ import logging
 
 __all__ = ["Logger", "setup_logger"]
 
+class ColorFormatter(logging.Formatter):
+    """Custom formatter to add colors to the log levels."""
+    # Define colors
+    GREEN = '\033[92m'
+    WHITE = '\033[97m'
+    COLORS = {
+        'WARNING': '\033[93m',  # Yellow
+        'INFO': '\033[97m',     # White
+        'DEBUG': '\033[94m',    # Blue
+        'CRITICAL': '\033[91m', # Red
+        'ERROR': '\033[91m',    # Red
+    }
+    # Define color for filename and lineno (approximation of RGB 78, 167, 204)
+    FILE_COLOR = '\033[96m'  # Cyan, as close as standard ANSI gets to RGB 78, 167, 204
+    RESET = '\033[0m'        # Reset color
+
+    def format(self, record):
+        asctime = self.formatTime(record, self.datefmt)
+        levelname = record.levelname
+        message = record.msg
+        func_name = record.funcName
+        fileline = f"{record.filename}:{record.lineno}"
+        
+
+        # Color the log level if it's specified, otherwise use the default message color
+        colored_time = self.GREEN + asctime + self.RESET
+        colored_level = self.COLORS.get(levelname, self.WHITE) + levelname + self.RESET
+        colored_fileline = self.FILE_COLOR + fileline + self.RESET
+        colored_func_name = self.FILE_COLOR + func_name + self.RESET
+        colored_msg = self.COLORS.get(levelname, self.WHITE) + message + self.RESET        
+
+        # Construct the final log message
+        formatted_log = f"{colored_time} | {colored_level} | {colored_fileline} | {colored_func_name} | {colored_msg}"
+
+        return formatted_log
 
 class Logger:
-    """A logger that can also log to file and console.
-
-    Args:
-        fpath (str, optional): If specified, log will be written to this file.
-    """
+    """A logger that can also log to file and console."""
 
     def __init__(self, fpath=None):
         self.console = sys.stdout
         self.file = None
         if fpath is not None:
-            mkdir_if_missing(os.path.dirname(fpath))
+            if not os.path.exists(os.path.dirname(fpath)):
+                os.makedirs(os.path.dirname(fpath))
             self.file = open(fpath, "w")
 
     def __del__(self):
@@ -48,8 +80,8 @@ class Logger:
 
     def setup_logging(self, level=logging.INFO):
         """Set up logging to capture with the same file handler and also log to console."""
-        log_format = logging.Formatter(
-            '%(asctime)s | %(levelname)s | %(name)s | %(message)s',
+        log_format = ColorFormatter(
+            '%(asctime)s | %(levelname)s | %(filename)s:%(lineno)d | %(funcName)s | %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         )
 
@@ -59,7 +91,7 @@ class Logger:
             file_handler = logging.StreamHandler(self.file)
             file_handler.setFormatter(log_format)
             handlers.append(file_handler)
-        
+
         # Set up the console handler for logging messages
         console_handler = logging.StreamHandler(self.console)
         console_handler.setFormatter(log_format)
@@ -77,6 +109,7 @@ class Logger:
         # Add our custom handlers to the root logger
         for handler in handlers:
             root_logger.addHandler(handler)
+
 
 
 def mkdir_if_missing(dirname):
