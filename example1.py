@@ -16,6 +16,7 @@ if __name__ == "__main__":
     # logger test, **prefer**
     logger.info("This is a info message from main.logger.info()")
     logger.debug("This is a debug message from main.logger.debug()")
+    logger.warning("This is a warning message from main.logger.warning()")
 
     # logging test
     logging.info("This is a info message from main.logging.info()")
