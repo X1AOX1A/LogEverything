@@ -93,13 +93,6 @@ class Logger:
 
         logging.basicConfig(level=level, handlers=handlers)
 
-def mkdir_if_missing(dirname):
-    """Create dirname if it is missing."""
-    try:
-        os.makedirs(dirname, exist_ok=True)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
 
 def setup_logger(log_dir="./output", log_file="logger.log", log_level=logging.INFO):
     """Setup the logger.
@@ -111,7 +104,7 @@ def setup_logger(log_dir="./output", log_file="logger.log", log_level=logging.IN
         
     log_path = None
     if log_file:
-        mkdir_if_missing(log_dir)
+        os.makedirs(log_dir, exist_ok=True)
         log_path = os.path.join(log_dir, log_file)
 
         if os.path.exists(log_path):
