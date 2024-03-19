@@ -13,7 +13,7 @@ if __name__ == "__main__":
     # print test
     print("This is a print message from main.py.")
 
-    # logger test, **prefer**
+    # logger test
     logger.info("This is a info message from main.logger.info()")
     logger.debug("This is a debug message from main.logger.debug()")
     logger.warning("This is a warning message from main.logger.warning()")
@@ -23,6 +23,6 @@ if __name__ == "__main__":
     logging.debug("This is a debug message from main.logging.debug()")
 
     # function test
-    func_with_logger()  # **prefer**
+    func_with_logger()
     func_with_logging()
     func_with_print()

@@ -41,13 +41,11 @@ In this example, all messages will be logged to both the console and a specified
 import logging
 from logger import setup_logger
 
-logger = logging.getLogger(__name__)
-
 if __name__ == "__main__":
     # set log_file to None to log only to console
     setup_logger(log_file="logger.log", log_dir="./output", log_level=logging.DEBUG)
-    logger.info("This is a info message from logger.info()")
-    logger.debug("This is a debug message from logger.debug()")
+    logging.info("This is a info message from logger.info()")
+    logging.debug("This is a debug message from logger.debug()")
 ```
 
 - Excute `example1.py` to see the output in the console and the log file.
