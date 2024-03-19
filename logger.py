@@ -1,3 +1,4 @@
+import re
 import os
 import sys
 import time
@@ -8,119 +9,97 @@ __all__ = ["Logger", "setup_logger"]
 
 class ColorFormatter(logging.Formatter):
     """Custom formatter to add colors to the log levels."""
-    # Define colors
-    GREEN = '\033[92m'
-    WHITE = '\033[97m'
-    COLORS = {
-        'WARNING': '\033[93m',  # Yellow
-        'INFO': '\033[97m',     # White
-        'DEBUG': '\033[94m',    # Blue
-        'CRITICAL': '\033[91m', # Red
-        'ERROR': '\033[91m',    # Red
+    COLOR_ANSI = {
+        "WHITE": "\033[97m",
+        "GREEN": "\033[92m",
+        "YELLOW": "\033[93m",
+        "BLUE": "\033[94m",
+        "RED": "\033[91m",
+        "CYAN": "\033[96m",
+        "RESET": "\033[0m"
     }
-    # Define color for filename and lineno (approximation of RGB 78, 167, 204)
-    FILE_COLOR = '\033[96m'  # Cyan, as close as standard ANSI gets to RGB 78, 167, 204
-    RESET = '\033[0m'        # Reset color
+    COLOR_MAPPER = {
+        "WARNING": "YELLOW",
+        "INFO": "WHITE",
+        "DEBUG": "BLUE",
+        "CRITICAL": "RED",
+        "ERROR": "RED",
+        "asctime": "GREEN",
+        "levelname": "WHITE",
+        "message": "WHITE",
+        "filename": "CYAN",
+        "lineno": "CYAN",
+        "funcName": "CYAN",
+    }
+
+    def __init__(self, use_color=True):
+        super().__init__()
+        self.use_color = use_color
+
+    def get_color(self, module_name):
+        if self.use_color:
+            return self.COLOR_ANSI[self.COLOR_MAPPER.get(module_name, "RESET")]
+        return ''
 
     def format(self, record):
-        asctime = self.formatTime(record, self.datefmt)
-        levelname = record.levelname
-        message = record.msg
-        func_name = record.funcName
-        fileline = f"{record.filename}:{record.lineno}"
-        
-
-        # Color the log level if it's specified, otherwise use the default message color
-        colored_time = self.GREEN + asctime + self.RESET
-        colored_level = self.COLORS.get(levelname, self.WHITE) + levelname + self.RESET
-        colored_fileline = self.FILE_COLOR + fileline + self.RESET
-        colored_func_name = self.FILE_COLOR + func_name + self.RESET
-        colored_msg = self.COLORS.get(levelname, self.WHITE) + message + self.RESET        
-
-        # Construct the final log message
-        formatted_log = f"{colored_time} | {colored_level} | {colored_fileline} | {colored_func_name} | {colored_msg}"
-
+        record.asctime = self.formatTime(record, self.datefmt)
+        formatted_log = f"{self.get_color('asctime')}{record.asctime}{self.get_color('RESET')} | " \
+                        f"{self.get_color(record.levelname)}{record.levelname}{self.get_color('RESET')} | " \
+                        f"{self.get_color('filename')}{record.filename}:{record.lineno}{self.get_color('RESET')} | " \
+                        f"{self.get_color('funcName')}{record.funcName}{self.get_color('RESET')} | " \
+                        f"{self.get_color(record.levelname)}{record.msg}{self.get_color('RESET')}"
         return formatted_log
 
 class Logger:
-    """A logger that can also log to file and console."""
+    ANSI_CODE_RE = re.compile(r'\x1b\[[0-9;]*m')
 
     def __init__(self, fpath=None):
         self.console = sys.stdout
         self.file = None
-        if fpath is not None:
-            if not os.path.exists(os.path.dirname(fpath)):
-                os.makedirs(os.path.dirname(fpath))
+        if fpath:
+            os.makedirs(os.path.dirname(fpath), exist_ok=True)
             self.file = open(fpath, "w")
 
     def __del__(self):
         self.close()
 
-    def __enter__(self):
-        pass
-
-    def __exit__(self, *args):
-        self.close()
-
     def write(self, msg):
         self.console.write(msg)
-        if self.file is not None:
-            self.file.write(msg)
+        if self.file:
+            self.file.write(self.ANSI_CODE_RE.sub('', msg))
 
     def flush(self):
         self.console.flush()
-        if self.file is not None:
+        if self.file:
             self.file.flush()
-            os.fsync(self.file.fileno())
 
     def close(self):
-        self.console.close()
-        if self.file is not None:
+        if self.file:
             self.file.close()
 
     def setup_logging(self, level=logging.INFO):
-        """Set up logging to capture with the same file handler and also log to console."""
-        log_format = ColorFormatter(
-            '%(asctime)s | %(levelname)s | %(filename)s:%(lineno)d | %(funcName)s | %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
-        )
+        color_log_format = ColorFormatter(use_color=True)
+        plain_log_format = ColorFormatter(use_color=False)
 
-        # Set up the file handler or console handler for logging messages
         handlers = []
         if self.file:
             file_handler = logging.StreamHandler(self.file)
-            file_handler.setFormatter(log_format)
+            file_handler.setFormatter(plain_log_format)
             handlers.append(file_handler)
 
-        # Set up the console handler for logging messages
         console_handler = logging.StreamHandler(self.console)
-        console_handler.setFormatter(log_format)
+        console_handler.setFormatter(color_log_format)
         handlers.append(console_handler)
 
-        # Get the root logger and set the level (default is INFO)
-        root_logger = logging.getLogger()
-        root_logger.setLevel(level)
-
-        # If the logger already has handlers, remove them to prevent duplicate logs
-        if root_logger.handlers:
-            for handler in root_logger.handlers:
-                root_logger.removeHandler(handler)
-
-        # Add our custom handlers to the root logger
-        for handler in handlers:
-            root_logger.addHandler(handler)
-
-
+        logging.basicConfig(level=level, handlers=handlers)
 
 def mkdir_if_missing(dirname):
     """Create dirname if it is missing."""
-    if not os.path.exists(dirname):
-        try:
-            os.makedirs(dirname)
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise
-
+    try:
+        os.makedirs(dirname, exist_ok=True)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
 
 def setup_logger(log_dir="./output", log_file="logger.log", log_level=logging.INFO):
     """Setup the logger.
@@ -136,10 +115,8 @@ def setup_logger(log_dir="./output", log_file="logger.log", log_level=logging.IN
         log_path = os.path.join(log_dir, log_file)
 
         if os.path.exists(log_path):
-            # Make sure the existing log file is not over-written
             time_string = time.strftime("-%Y-%m-%d-%H-%M-%S")
-            basename, ext = os.path.splitext(log_path)
-            log_path = basename + time_string + ext
+            log_path = f"{os.path.splitext(log_path)[0]}{time_string}{os.path.splitext(log_path)[1]}"
 
     # Set up stdout redirection
     log_instance = Logger(log_path)
@@ -148,9 +125,7 @@ def setup_logger(log_dir="./output", log_file="logger.log", log_level=logging.IN
     # Set up logging redirection
     log_instance.setup_logging(level=log_level)
 
-
 if __name__ == "__main__":
-    log_dir = "./output"
-    setup_logger(log_dir)
+    setup_logger("./output", "logger.log", logging.INFO)
     print("This is a message.")
     logging.info("This is a logging.info message.")
